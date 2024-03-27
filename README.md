@@ -104,8 +104,9 @@ python3 train.py [-h] [-m MODEL] [--encoder ENCODER] [--image-size IMAGE_SIZE]
         /nir
         /gt
 ```
-## 5. Утилиты для подготовки данных
+## 5. Утилиты для подготовки данных <a name="utils"></a>
 Утилиты для подготовки данных находятся в папке ./dataset_utils
+
 ## 6. Просмотр графиков в Tensorboard <a name="tensorboard"></a>
 [TensorBoard](https://www.tensorflow.org/tensorboard?hl=ru) - удобный инструмент для логирования экспериментов в PyTorch и Tensorflow. Помимо построения графиков, в TensorBoard удобно сохранять N примеров с худшими метриками в конце каждой эпохи, для того чтобы понять, на чем модель ошибается больше всего.
 
