@@ -1,0 +1,8 @@
+__pycache__
+.idea/*
+.logs/*
+logs/*
+onnx/*
+.segm_models/*
+*.onnx
+filenames.txt
