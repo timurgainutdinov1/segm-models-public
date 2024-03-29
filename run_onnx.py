@@ -11,7 +11,7 @@ from argparse import ArgumentParser
 # Растр -> Извлечение -> Обрезать растр по обхвату
 Image.MAX_IMAGE_PIXELS = None
 DEBUG = True
-url = 'https://cloud.imm.uran.ru/s/HsMkitXrdd82SS5/download/buildings_b6.onnx'
+url = ''
 
 
 def normalize(img, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0):
