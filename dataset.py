@@ -66,7 +66,7 @@ class TilesDataset(Dataset):
         self.num_classes = len(self.class_list)
         # если многоклассовая классификация то добавляем класс background (на один класс больше)
         self.num_classes = 1 if self.num_classes == 1 else self.num_classes + 1
-        print(f"Num classes to train with background {self.num_classes}")
+        print(f"Num classes to train with background: {self.num_classes}")
 
         # Читаем список изображений с диска
         if self.data_dir is not None:
