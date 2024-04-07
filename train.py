@@ -89,6 +89,11 @@ def main():
                              add_dirs=args.add_dirs,
                              # images_list_path=args.train_img_list
                              )
+
+    assert len(train_set) % args.batch != 1, (f"Train dataset len is {len(train_set)} batch_size is {args.batch}. "
+                                              f"len(train_set) % batch_size == 1. Please use a different batch size."
+                                              f"The training code cannot process a batch with size 1.")
+
     # train_set.test_augment(r'D:\Vector_data\Water\test_dataset\train_test_aug', 10)
     valid_set = None
     add_valid_set_list = []
