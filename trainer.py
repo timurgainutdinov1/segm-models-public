@@ -218,7 +218,7 @@ class SegmentationTrainer:
                     'mean_var': self.train_set.mean_var,
                     'class_list': self.train_set.class_list,
                     'add_dirs': self.train_set.add_dirs,
-                    'device': self._device,
+                    'device': self.device,
                 }, checkpoint_name)  # checkpoint_name + '_iou_{:.2f}_epoch_{}.pth'.format(self._max_score, i))
                 print(f'Model saved at {checkpoint_name}')
 
