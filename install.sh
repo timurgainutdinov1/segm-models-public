@@ -11,5 +11,6 @@ pip install pretrainedmodels==0.7.4 --no-deps
 pip install timm==0.9.2 --no-deps
 pip install efficientnet-pytorch==0.7.1 numpy==1.26.4 opencv-python==4.9.0.80 albumentations==1.4.2 tqdm==4.66.2 six==1.16.0 tensorboard==2.16.2 matplotlib==3.8.3
 
+mkdir "logs"
 chmod +x train.sh
 chmod +x validate.sh
