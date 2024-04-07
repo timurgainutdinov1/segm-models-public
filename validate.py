@@ -103,6 +103,7 @@ def make_prediction(model, image, tile_size: int, step: int, device, thres: floa
             mask = mask.reshape((1,) + mask.shape)
             mask = mask.to(device)
         res = model.forward(image)
+        raw = res.clone()
         res_low = torch.where(res < thres, res, torch.tensor(0, dtype=res.dtype).to(device))
         res = torch.where(res >= thres, 1, 0)
         metrics = None
@@ -116,12 +117,13 @@ def make_prediction(model, image, tile_size: int, step: int, device, thres: floa
 
         res = convert_torch_to_8_bit(res)
         res_low = convert_torch_to_8_bit(res_low)
+        raw = convert_torch_to_8_bit(raw)
 
         rgb = np.dstack((res, res, res))
         rgb_raw = np.dstack((res_low, res_low, res_low))
-
+        binary = np.copy(rgb)
         rgb[res == 255] = (0, 0, 255)
-        rgb = rgb + rgb_raw
+        plot = rgb + rgb_raw
         # rgb = rgb_raw
         # rgb = np.add(rgb,rgb_raw)
         # cv2.imshow("image", rgb_raw)
@@ -129,7 +131,7 @@ def make_prediction(model, image, tile_size: int, step: int, device, thres: floa
         # mask = convert_torch_to_8_bit(mask)
         # cv2.imwrite(r'C:\RG3\checkpoints\res.tif', res)
         # cv2.imwrite(r'C:\RG3\checkpoints\mask.tif', mask)
-        return rgb, metrics
+        return {'plot': plot, 'binary': binary, 'raw': raw}, metrics
 
     else:
         print(f'image shape is{image.shape}')
@@ -195,8 +197,9 @@ def main():
     parser.add_argument("-o", "--output-dir", type=str, help="path where to write output, if isn't provided "
                                                              "output=checkpoint's dir")
     parser.add_argument('--vis', action='store_true', help="visualize plot with result on one image")
-    parser.add_argument('--no-plots', action='store_true', help="don't write plots to disk")
-    parser.add_argument('--only-plots', action='store_true', help="don't save raw output to disk")
+    parser.add_argument('--plots', action='store_true', help="write img|output|mask in one plot")
+    parser.add_argument('--binary', action='store_true', help="write binary output to disk")
+    parser.add_argument('--raw', action='store_true', help="write raw output to disk")
     parser.add_argument('--com', '--calc-only-metrics', action='store_true',
                         help="calc only metrics without saving imgs with predictions")
     # parser.add_argument('--uim', '--use-imagenet-means', action='store_true',
@@ -278,10 +281,12 @@ def main():
                 _output_path = os.path.join(_output_path, _output_dir_name)
 
     _output_plots_path = os.path.join(_output_path, 'plots')
+    _output_raw_path = os.path.join(_output_path, 'raw')
     exist_ok = True
     if _output_dir_name is not None:  # Создаем папку куда сохраняем предсказания
         os.makedirs(_output_path, exist_ok=exist_ok)
     os.makedirs(_output_plots_path, exist_ok=exist_ok)  # Создаем папку куда сохраним графики
+    os.makedirs(_output_raw_path, exist_ok=exist_ok)  # Создаем папку куда сохраним графики
 
     checkpoint = torch.load(args.check_path, map_location=torch.device(args.device))
     model_name = checkpoint['model_name']
@@ -331,10 +336,18 @@ def main():
     # input = torch.tensor((3, 512, 512))
     # summary(_model, (3, 512, 512))
     # exit()
+    new_version = False
+    if 'device' in checkpoint:  # значит это новая версия проекта, и в чекпоинте есть ключ 'device'
+        new_version = True
 
-    _model = nn.DataParallel(_model)
-    _model.load_state_dict(checkpoint['model_state_dict'])
-    _model = _model.module.to(_device)  # убираем nn.DataParallel т.к. с ним не считается на cpu
+    # Если модель обучалась на cuda, она обернута в nn.DataParallel
+    if (new_version and checkpoint['device'] == 'cuda') or not new_version:
+        _model = nn.DataParallel(_model)
+        _model.load_state_dict(checkpoint['model_state_dict'])
+        _model = _model.module.to(_device)  # убираем nn.DataParallel т.к. с ним не считается на cpu
+    else: # Если обучалась без cuda, то была сохранена без nn.DataParallel
+        _model.load_state_dict(checkpoint['model_state_dict'])
+
     _model.eval()
 
     with open(os.path.join(_output_path, "_metrics.csv"), "a") as evalfile:
@@ -362,19 +375,23 @@ def main():
                 mean_metrics[i].append(val)
                 i += 1
 
-            if not b_calc_only_metrics:
-                if not args.only_plots:
+            if not b_calc_only_metrics:  # Сохраним бинарные картинки
+                if args.binary:
                     print(f'Save {os.path.join(_output_path, filename)}')
-                    cv2.imwrite(os.path.join(_output_path, filename), cv2.cvtColor(res, cv2.COLOR_RGB2BGR))
+                    cv2.imwrite(os.path.join(_output_path, filename), cv2.cvtColor(res['binary'], cv2.COLOR_RGB2BGR))
 
-                if not args.no_plots:
+                if args.raw: # Сохраним выход сети без пороговой обработки
+                    print(f'Save {os.path.join(_output_raw_path, filename)}')
+                    cv2.imwrite(os.path.join(_output_raw_path, filename), res['raw'])
+
+                if args.plots:  # сохраняем снимок/выход сети/ разметку в одну картинку в папку plots
                     name, ext = filename.split('.')
                     plot_name = name + f"_iou_{metrics['iou']:.2f}_acc_{metrics['acc']:.2f}." + ext
                     write_plots_and_visualize(  # (path_to_res, visualize=False, **images)
                         os.path.join(_output_plots_path, plot_name),
                         visualize=b_visualize,
                         image=image,
-                        predicted=res,
+                        predicted=res['plot'],
                         mask=mask
                     )
         for i in range(len(mean_metrics)):

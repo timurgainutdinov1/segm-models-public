@@ -177,6 +177,7 @@ class SegmentationTrainer:
             writer.add_scalar('Accuracy/train', train_logs['iou_score'], i)
             writer.add_scalar('Loss/train', train_logs['dice_loss'], i)
 
+            # Валидация
             if not self.use_only_add_val:  # если в списке есть основной val набор считаем iou по нему
                 valid_logs = self._valid_epoch.run(self.valid_loader['set'])
                 writer.add_scalar(self.valid_loader['name'] + ' iou', valid_logs['iou_score'], i)
@@ -185,7 +186,8 @@ class SegmentationTrainer:
                 if self.valid_loader_list is not None:
                     mean_val_iou += valid_logs['iou_score'] * self.valid_loader['weight']
 
-            if self.valid_loader_list is not None:  # Считаем mean_val_iou по нескольким наборам
+            # Считаем mean_val_iou по нескольким наборам
+            if self.valid_loader_list is not None:
                 validate_now = (i % self.add_val_freq) == 0
                 if validate_now:
                     for loader in self.valid_loader_list:
@@ -201,7 +203,6 @@ class SegmentationTrainer:
                 # сохраняем в файл для русского экселя
                 evalfile.write(f"{i}; {iou_value:.4f}\n".replace('.', ','))
 
-            # do something (save model, change lr, etc.)
             if max_score < iou_value:
                 max_score = iou_value
                 torch.save({
@@ -214,9 +215,10 @@ class SegmentationTrainer:
                     'encoder_weights': self.encoder_weights,
                     'activation': self.activation,
                     'max_score': max_score,
-                    'mean_var': self.train_set.mean_var,  # TODO проверить что нормально сохраняется
+                    'mean_var': self.train_set.mean_var,
                     'class_list': self.train_set.class_list,
-                    'add_dirs': self.train_set.add_dirs
+                    'add_dirs': self.train_set.add_dirs,
+                    'device': self._device,
                 }, checkpoint_name)  # checkpoint_name + '_iou_{:.2f}_epoch_{}.pth'.format(self._max_score, i))
                 print(f'Model saved at {checkpoint_name}')
 
