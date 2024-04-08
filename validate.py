@@ -398,10 +398,11 @@ def main():
                         predicted=res['plot'],
                         mask=mask
                     )
-        for i in range(len(mean_metrics)):
-            mean_metrics[i] = statistics.mean(mean_metrics[i])
-        evalfile.write(f"{'mean_vals'}; " + f"{mean_metrics[0]:.4f}; {mean_metrics[1]:.4f}\n".replace('.', ','))
-        print(f"{'Mean vals over dataset are'}: " + f"iou {mean_metrics[0]:.4f}, acc {mean_metrics[1]:.4f}\n".replace('.', ','))
+        if _b_calc_metrics:
+            for i in range(len(mean_metrics)):
+                mean_metrics[i] = statistics.mean(mean_metrics[i])
+            evalfile.write(f"{'mean_vals'}; " + f"{mean_metrics[0]:.4f}; {mean_metrics[1]:.4f}\n".replace('.', ','))
+            print(f"{'Mean vals over dataset are'}: " + f"iou {mean_metrics[0]:.4f}, acc {mean_metrics[1]:.4f}\n".replace('.', ','))
 
 
 if __name__ == '__main__':
