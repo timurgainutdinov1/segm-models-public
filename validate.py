@@ -368,12 +368,13 @@ def main():
             # print(f'mask shape is {mask.shape}')
             filename = os.path.basename(valid_set.image_set[i])
 
-            # сохраняем в файл для русского экселя
-            evalfile.write(f"{filename}; " + f"{metrics['iou']:.4f}; {metrics['acc']:.4f}\n".replace('.', ','))
-            i = 0
-            for val in metrics.values():
-                mean_metrics[i].append(val)
-                i += 1
+            if _b_calc_metrics:
+                # сохраняем в файл для русского экселя
+                evalfile.write(f"{filename}; " + f"{metrics['iou']:.4f}; {metrics['acc']:.4f}\n".replace('.', ','))
+                i = 0
+                for val in metrics.values():
+                    mean_metrics[i].append(val)
+                    i += 1
 
             if not b_calc_only_metrics:  # Сохраним бинарные картинки
                 if args.binary:
@@ -385,8 +386,11 @@ def main():
                     cv2.imwrite(os.path.join(_output_raw_path, filename), res['raw'])
 
                 if args.plots:  # сохраняем снимок/выход сети/ разметку в одну картинку в папку plots
-                    name, ext = filename.split('.')
-                    plot_name = name + f"_iou_{metrics['iou']:.2f}_acc_{metrics['acc']:.2f}." + ext
+                    if _b_calc_metrics:
+                        name, ext = filename.split('.')
+                        plot_name = name + f"_iou_{metrics['iou']:.2f}_acc_{metrics['acc']:.2f}." + ext
+                    else:
+                        plot_name = filename
                     write_plots_and_visualize(  # (path_to_res, visualize=False, **images)
                         os.path.join(_output_plots_path, plot_name),
                         visualize=b_visualize,
