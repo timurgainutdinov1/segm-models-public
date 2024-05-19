@@ -29,7 +29,9 @@ def main():
     # по умолчанию '255' - означает что на маске два значения - 0 и 255
     # размер батча должен быть четным числом, а число примеров в наборе также четным
     parser.add_argument("-b", "--batch", type=int, default=6, help="batch size default=6, must be an even number")
+    parser.add_argument("--optimizer", type=str, default="Adam", help="optimizer")
     parser.add_argument("-lr", type=float, default=0.001, help="learning rate")
+    parser.add_argument("--loss", type=str, default="dice_loss", help="loss function")
     parser.add_argument("-e", "--epochs", type=int, default=50, help="default=50")
     parser.add_argument("-a", "--augmentation", type=str, default="hard", help="default=hard, medium light safe")
     parser.add_argument("-w", "--workers", type=int, default=1, help="default=6")
@@ -167,7 +169,9 @@ def main():
         exp_name=args.exp_name,
         log_dir=args.log_dir,
         epochs_count=int(args.epochs),
+        optimizer=args.optimizer,
         learning_rate=float(args.lr),
+        loss=args.loss,
         train_batch_size=int(args.batch),
         valid_batch_size=int(args.batch),
         train_workers_count=int(args.workers),
@@ -176,7 +180,7 @@ def main():
         device=args.device
     )
 
-    trainer.start_training()
+    trainer.start_training(loss=args.loss)
 
 
 if __name__ == '__main__':

@@ -28,6 +28,8 @@ class SegmentationTrainer:
             activation='sigmoid',
             device='cuda',
             epochs_count=50,
+            optimizer='Adam',
+            loss='dice_loss',
             learning_rate=0.001,
             train_batch_size=2,
             valid_batch_size=2,
@@ -108,15 +110,29 @@ class SegmentationTrainer:
             loader['weight'] /= num_elements
 
         self.valid_loader['weight'] /= num_elements
-
-        self._loss = smp_utils.losses.DiceLoss()
+        if loss == 'dice_loss':
+            self._loss = smp_utils.losses.DiceLoss()
+        elif loss == 'jaccard_loss':
+            self._loss = smp_utils.losses.JaccardLoss()
         self._metrics = [
             smp_utils.metrics.IoU(threshold=0.5),
         ]
-
-        self._optimizer = torch.optim.Adam([
-            dict(params=self._model.parameters(), lr=learning_rate),
-        ])
+        if optimizer == 'Adam':
+            self._optimizer = torch.optim.Adam([
+                dict(params=self._model.parameters(), lr=learning_rate),
+            ])
+        elif optimizer == 'Adadelta':
+            self._optimizer = torch.optim.Adadelta([
+                dict(params=self._model.parameters(), lr=learning_rate),
+            ])
+        elif optimizer == 'Adagrad':
+            self._optimizer = torch.optim.Adagrad([
+                dict(params=self._model.parameters(), lr=learning_rate),
+            ])
+        elif optimizer == 'Adamax':
+            self._optimizer = torch.optim.Adamax([
+                dict(params=self._model.parameters(), lr=learning_rate),
+            ])
 
         self._scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self._optimizer, self.epochs_count)
 
@@ -137,7 +153,7 @@ class SegmentationTrainer:
             verbose=True,
         )
 
-    def start_training(self):
+    def start_training(self, loss='dice_loss'):
         print(f'Запуск обучения модели с энкодером {self.encoder_name}')
         logs_path = os.path.join(self.log_dir, self.exp_name)
         if not os.path.exists(logs_path):
@@ -175,13 +191,13 @@ class SegmentationTrainer:
 
             train_logs = self._train_epoch.run(self._train_loader)
             writer.add_scalar('Accuracy/train', train_logs['iou_score'], i)
-            writer.add_scalar('Loss/train', train_logs['dice_loss'], i)
+            writer.add_scalar('Loss/train', train_logs[loss], i)
 
             # Валидация
             if not self.use_only_add_val:  # если в списке есть основной val набор считаем iou по нему
                 valid_logs = self._valid_epoch.run(self.valid_loader['set'])
                 writer.add_scalar(self.valid_loader['name'] + ' iou', valid_logs['iou_score'], i)
-                writer.add_scalar(self.valid_loader['name'] + ' loss', valid_logs['dice_loss'], i)
+                writer.add_scalar(self.valid_loader['name'] + ' loss', valid_logs[loss], i)
                 val_iou = valid_logs['iou_score']
                 if self.valid_loader_list is not None:
                     mean_val_iou += valid_logs['iou_score'] * self.valid_loader['weight']
@@ -193,7 +209,7 @@ class SegmentationTrainer:
                     for loader in self.valid_loader_list:
                         valid_logs = self._valid_epoch.run(loader['set'])
                         writer.add_scalar(loader['name'] + ' iou', valid_logs['iou_score'], i)
-                        writer.add_scalar(loader['name'] + ' loss', valid_logs['dice_loss'], i)
+                        writer.add_scalar(loader['name'] + ' loss', valid_logs[loss], i)
                         mean_val_iou += valid_logs['iou_score'] * loader['weight']
 
             # считаем либо только по основному набору либо только по доп. наборам
